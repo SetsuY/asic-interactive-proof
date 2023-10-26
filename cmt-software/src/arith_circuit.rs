@@ -1,4 +1,5 @@
 use super::circuit_conf as conf;
+#[derive[Copy, Clone]]
 struct Gate {
 	label: u32,
 	// Input gates
