@@ -68,12 +68,24 @@ impl ArithCircuit {
 			circ.circuit.push(curr_layer);
 			circ.curr_layer += 1;
 		}
+		circ.evaluate_circuit();
 		return circ;
 	}
 	fn get_curr_layer(&mut self) -> &mut Vec<Gate> {
 		&mut self.circuit[self.curr_layer]
 	}
-	pub fn evaluate_circuit(&mut self) {
+	fn evaluate_circuit(&mut self) {
+		for i in (0..self.circuit.len() - 1).rev() {
+			for j in 0..self.circuit[i].len() {
+				let w0 = self.circuit[i+1][self.circuit[i][j].w0].value;
+				let w1 = self.circuit[i+1][self.circuit[i][j].w1].value;
+				if self.circuit[i][j].is_add {
+					self.circuit[i][j].value = (w0 + w1) % conf::PRIME;
+				} else {
+					self.circuit[i][j].value = (w0 * w1) % conf::PRIME;
+				}
+			}
+		}
 	}
 }
 
