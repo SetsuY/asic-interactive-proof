@@ -1,27 +1,79 @@
+use std::fs;
 use super::circuit_conf as conf;
-#[derive[Copy, Clone]]
+
+#[derive(Copy, Clone)]
 struct Gate {
-	label: u32,
 	// Input gates
-	w0: u32,
-	w1: u32,
+	w0: usize,
+	w1: usize,
 	is_add: bool,
 	value: u32,
 }
 
+impl Gate {
+	fn new(w0: usize, w1: usize, is_add: bool, value: u32) -> Gate {
+		Gate {
+			w0: w0,
+			w1: w1,
+			is_add: is_add,
+			value: value,
+		}
+	}
+}
+
 pub struct ArithCircuit {
-	circuit: [[Gate; conf::NUM_GATE]; conf::NUM_LAYER],
+	circuit: Vec<Vec<Gate>>,
 	curr_layer: usize,
-	inputs: [u32; conf::NUM_GATE * 2]
+}
+
+enum FileReadState {
+	Read0,
+	Read1,
+	ReadType,
 }
 
 impl ArithCircuit {
-	//pub fn new(circ_input: &[u32; conf::NUM_GATE * 2]) -> ArithCircuit
-	pub fn set_wiring(&mut self) {
-
+	pub fn new(fname: &str) -> ArithCircuit {
+		// Format:
+		// each layer is one line
+		// w0,w1,+ w0,w1,* ...
+		// First line output gate; Last line input values only
+		let mut circ = ArithCircuit {
+			circuit: Vec::new(),
+			curr_layer: 0,
+		};
+		let file: String = fs::read_to_string(fname).unwrap();
+		// Parse file
+		for l in file.lines() {
+			let mut curr_layer: Vec<Gate> = Vec::new();
+			if l.contains(",") {
+				for gates in l.split_whitespace() {
+					let vals: Vec<&str> = gates.split(",").collect();
+					if vals.len() != 3 {
+						panic!("Wrong format at layer {}", circ.curr_layer);
+					}
+					if vals[2] != "+" || vals[2] != "*" {
+						panic!("Wrong format at layer {}", circ.curr_layer);
+					}
+					curr_layer.push(Gate::new(
+						vals[0].parse().unwrap(),
+						vals[1].parse().unwrap(),
+						vals[2] == "+", 0));
+				}
+			} else {
+				for input in l.split_whitespace() {
+					curr_layer.push(Gate::new(0, 0, false, input.parse().unwrap()));
+				}
+			}
+			circ.circuit.push(curr_layer);
+			circ.curr_layer += 1;
+		}
+		return circ;
 	}
-	fn get_curr_layer(&mut self) -> &mut [Gate; conf::NUM_GATE] {
+	fn get_curr_layer(&mut self) -> &mut Vec<Gate> {
 		&mut self.circuit[self.curr_layer]
+	}
+	pub fn evaluate_circuit(&mut self) {
 	}
 }
 
