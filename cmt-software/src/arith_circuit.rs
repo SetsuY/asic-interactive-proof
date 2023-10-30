@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, io::{stdout, Write}};
 use super::circuit_conf as conf;
 
 #[derive(Copy, Clone)]
@@ -26,12 +26,6 @@ pub struct ArithCircuit {
 	curr_layer: usize,
 }
 
-enum FileReadState {
-	Read0,
-	Read1,
-	ReadType,
-}
-
 impl ArithCircuit {
 	pub fn new(fname: &str) -> ArithCircuit {
 		// Format:
@@ -52,18 +46,20 @@ impl ArithCircuit {
 					if vals.len() != 3 {
 						panic!("Wrong format at layer {}", circ.curr_layer);
 					}
-					if vals[2] != "+" || vals[2] != "*" {
+					if !(vals[2].eq("+") || vals[2].eq("*")) {
 						panic!("Wrong format at layer {}", circ.curr_layer);
 					}
 					curr_layer.push(Gate::new(
 						vals[0].parse().unwrap(),
 						vals[1].parse().unwrap(),
-						vals[2] == "+", 0));
+						vals[2].eq("+"), 0));
 				}
 			} else {
 				for input in l.split_whitespace() {
 					curr_layer.push(Gate::new(0, 0, false, input.parse().unwrap()));
 				}
+				circ.circuit.push(curr_layer);
+				break;
 			}
 			circ.circuit.push(curr_layer);
 			circ.curr_layer += 1;
@@ -71,21 +67,42 @@ impl ArithCircuit {
 		circ.evaluate_circuit();
 		return circ;
 	}
-	fn get_curr_layer(&mut self) -> &mut Vec<Gate> {
-		&mut self.circuit[self.curr_layer]
-	}
 	fn evaluate_circuit(&mut self) {
-		for i in (0..self.circuit.len() - 1).rev() {
-			for j in 0..self.circuit[i].len() {
-				let w0 = self.circuit[i+1][self.circuit[i][j].w0].value;
-				let w1 = self.circuit[i+1][self.circuit[i][j].w1].value;
-				if self.circuit[i][j].is_add {
-					self.circuit[i][j].value = (w0 + w1) % conf::PRIME;
+		let circ = &mut self.circuit;
+		for i in (0..circ.len() - 1).rev() {
+			for j in 0..circ[i].len() {
+				let w0 = circ[i+1][circ[i][j].w0].value;
+				let w1 = circ[i+1][circ[i][j].w1].value;
+				if circ[i][j].is_add {
+					circ[i][j].value = (w0 + w1) % conf::PRIME;
 				} else {
-					self.circuit[i][j].value = (w0 * w1) % conf::PRIME;
+					circ[i][j].value = (w0 * w1) % conf::PRIME;
 				}
 			}
 		}
+	}
+	pub fn print_circuit(&mut self) {
+		let circ = &self.circuit;
+		let mut stdout_lock = stdout().lock();
+		for layer in circ {
+			for gate in layer {
+				write!(stdout_lock, "{},{},{} ", gate.w0, gate.w1, gate.value).unwrap();
+			}
+			write!(stdout_lock, "\n").unwrap();
+		}
+	}
+	pub fn set_curr_layer(&mut self, layer: usize) {
+		self.curr_layer = layer;
+	}
+	pub fn get_gate_val(&self, gate_lbl: usize) -> u32 {
+		self.circuit[self.curr_layer][gate_lbl].value
+	}
+	pub fn get_gate_wiring(&self, gate_lbl: usize) -> (usize, usize) {
+		let gate = &self.circuit[self.curr_layer][gate_lbl];
+		(gate.w0, gate.w1)
+	}
+	pub fn is_gate_add(&self, gate_lbl: usize) -> bool {
+		self.circuit[self.curr_layer][gate_lbl].is_add
 	}
 }
 
