@@ -1,7 +1,7 @@
-use super::arith_circuit as circ;
+use super::arith_circuit;
 use super::prover;
 use super::verifier;
 
-fn run(&mut circ: ArithCircuit) -> bool {
-
+pub fn run(circ: &mut arith_circuit::ArithCircuit) -> bool {
+	true
 }

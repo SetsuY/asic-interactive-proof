@@ -1,5 +1,5 @@
 use std::{fs, io::{stdout, Write}};
-use super::circuit_conf as conf;
+use super::math_helper as conf;
 
 #[derive(Copy, Clone)]
 struct Gate {
