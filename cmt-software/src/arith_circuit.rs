@@ -1,13 +1,13 @@
 use std::{fs, io::{stdout, Write}};
-use super::math_helper as conf;
+use super::math_helper::Zp;
 
 #[derive(Copy, Clone)]
-struct Gate {
+pub struct Gate {
 	// Input gates
 	w0: usize,
 	w1: usize,
 	is_add: bool,
-	value: u32,
+	value: Zp,
 }
 
 impl Gate {
@@ -16,14 +16,18 @@ impl Gate {
 			w0: w0,
 			w1: w1,
 			is_add: is_add,
-			value: value,
+			value: Zp::new(value),
 		}
+	}
+	pub fn get_wiring(&self) -> (usize, usize) {
+		(self.w0, self.w1)
 	}
 }
 
 pub struct ArithCircuit {
 	circuit: Vec<Vec<Gate>>,
 	curr_layer: usize,
+	pub num_bits: usize,
 }
 
 impl ArithCircuit {
@@ -35,6 +39,7 @@ impl ArithCircuit {
 		let mut circ = ArithCircuit {
 			circuit: Vec::new(),
 			curr_layer: 0,
+			num_bits: 0,
 		};
 		let file: String = fs::read_to_string(fname).unwrap();
 		// Parse file
@@ -65,6 +70,7 @@ impl ArithCircuit {
 			circ.curr_layer += 1;
 		}
 		circ.evaluate_circuit();
+		circ.num_bits = 2usize.pow((circ.circuit.len() - 1).try_into().unwrap());
 		return circ;
 	}
 	fn evaluate_circuit(&mut self) {
@@ -74,14 +80,14 @@ impl ArithCircuit {
 				let w0 = circ[i+1][circ[i][j].w0].value;
 				let w1 = circ[i+1][circ[i][j].w1].value;
 				if circ[i][j].is_add {
-					circ[i][j].value = (w0 + w1) % conf::PRIME;
+					circ[i][j].value = w0 + w1;
 				} else {
-					circ[i][j].value = (w0 * w1) % conf::PRIME;
+					circ[i][j].value = w0 * w1;
 				}
 			}
 		}
 	}
-	pub fn print_circuit(&mut self) {
+	pub fn print_circuit(&self) {
 		let circ = &self.circuit;
 		let mut stdout_lock = stdout().lock();
 		for layer in circ {
@@ -91,15 +97,32 @@ impl ArithCircuit {
 			write!(stdout_lock, "\n").unwrap();
 		}
 	}
+	pub fn num_bits(&self) -> usize {
+		2usize.pow((self.circuit.len() - 1).try_into().unwrap())
+	}
 	pub fn set_curr_layer(&mut self, layer: usize) {
 		self.curr_layer = layer;
 	}
-	pub fn get_gate_val(&self, gate_lbl: usize) -> u32 {
-		self.circuit[self.curr_layer][gate_lbl].value
+	pub fn get_last_layer(&self) -> &Vec<Gate> {
+		&self.circuit[self.curr_layer - 1]
+	}
+	pub fn next_layer(&mut self) {
+		self.curr_layer = (self.curr_layer + 1) % self.circuit.len();
+	}
+	pub fn get_gate_val(&self, gate_lbl: usize) -> Zp {
+		if gate_lbl < self.circuit[self.curr_layer].len() {
+			self.circuit[self.curr_layer][gate_lbl].value
+		} else {
+			panic!("Illegal access to gate {} at layer {}", self.curr_layer, gate_lbl);
+		}
 	}
 	pub fn get_gate_wiring(&self, gate_lbl: usize) -> (usize, usize) {
-		let gate = &self.circuit[self.curr_layer][gate_lbl];
-		(gate.w0, gate.w1)
+		if gate_lbl < self.circuit[self.curr_layer].len() {
+			let gate = &self.circuit[self.curr_layer][gate_lbl];
+			(gate.w0, gate.w1)
+		} else {
+			(0, 0)
+		}
 	}
 	pub fn is_gate_add(&self, gate_lbl: usize) -> bool {
 		self.circuit[self.curr_layer][gate_lbl].is_add
