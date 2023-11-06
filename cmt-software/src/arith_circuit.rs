@@ -69,8 +69,9 @@ impl ArithCircuit {
 			circ.circuit.push(curr_layer);
 			circ.curr_layer += 1;
 		}
+		circ.curr_layer = 0;
 		circ.evaluate_circuit();
-		circ.num_bits = 2usize.pow((circ.circuit.len() - 1).try_into().unwrap());
+		circ.num_bits = ((circ.circuit.len() - 1) as f64).log2().ceil() as usize;
 		return circ;
 	}
 	fn evaluate_circuit(&mut self) {
@@ -101,13 +102,13 @@ impl ArithCircuit {
 		2usize.pow((self.circuit.len() - 1).try_into().unwrap())
 	}
 	pub fn set_curr_layer(&mut self, layer: usize) {
-		self.curr_layer = layer;
+		self.curr_layer = layer % (self.circuit.len() - 1);
 	}
 	pub fn get_last_layer(&self) -> &Vec<Gate> {
 		&self.circuit[self.curr_layer - 1]
 	}
 	pub fn next_layer(&mut self) {
-		self.curr_layer = (self.curr_layer + 1) % self.circuit.len();
+		self.set_curr_layer(self.curr_layer + 1);
 	}
 	pub fn get_gate_val(&self, gate_lbl: usize) -> Zp {
 		if gate_lbl < self.circuit[self.curr_layer].len() {

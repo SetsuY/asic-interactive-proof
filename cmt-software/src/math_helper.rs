@@ -29,7 +29,7 @@ pub fn get_bit(n: usize, bit: usize) -> usize {
 	bic(n >> bit, LOW_BIT_MASK)
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Zp {
 	val: i64,
 }
