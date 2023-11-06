@@ -29,7 +29,7 @@ pub fn get_bit(n: usize, bit: usize) -> usize {
 	bic(n >> bit, LOW_BIT_MASK)
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Zp {
 	val: i64,
 }
@@ -37,8 +37,11 @@ pub struct Zp {
 impl Zp {
 	pub fn new(n: u32) -> Zp {
 		Zp {
-			val: n as i64,
+			val: (n as i64) % (PRIME as i64),
 		}
+	}
+	pub fn val(&self) -> u32 {
+		self.val as u32
 	}
 }
 impl fmt::Display for Zp {
