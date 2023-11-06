@@ -1,18 +1,18 @@
-use std::{fmt, ops};
+use std::{fmt, ops, cmp};
 
 pub const PRIME: u32 = !0 - 1;
 pub const LOW_BIT_MASK: usize = !0 - 1;
 
-pub fn interpolate(sample_pts: &Vec<(i32, i32)>, tgt_pt: i32) -> i32 {
-	let mut sum = 0;
+pub fn interpolate(sample_pts: &Vec<(Zp, Zp)>, tgt_pt: Zp) -> Zp {
+	let mut sum = Zp::new(0);
 	for j in 0..sample_pts.len() {
 		sum += sample_pts[j].1 * lagrange_poly(sample_pts, tgt_pt, j, sample_pts.len());
 	}
 	sum
 }
 
-fn lagrange_poly(sample_pts: &Vec<(i32, i32)>, x: i32, j: usize, k: usize) -> i32 {
-	let mut result = 1;
+fn lagrange_poly(sample_pts: &Vec<(Zp, Zp)>, x: Zp, j: usize, k: usize) -> Zp {
+	let mut result = Zp::new(1);
 	for i in 0..k {
 		if i != j.try_into().unwrap() {
 			result *= (x - sample_pts[i].0) / (sample_pts[j].0 - sample_pts[i].0);
@@ -44,6 +44,16 @@ impl Zp {
 impl fmt::Display for Zp {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "{}", self.val)
+	}
+}
+impl cmp::PartialEq<Zp> for Zp {
+	fn eq(&self, other: &Zp) -> bool {
+		self.val == other.val
+	}
+}
+impl cmp::PartialEq<u32> for Zp {
+	fn eq(&self, other: &u32) -> bool {
+		self.val == *other as i64
 	}
 }
 impl ops::Add for Zp {
@@ -86,5 +96,21 @@ impl ops::Mul for Zp {
 impl ops::MulAssign for Zp {
 	fn mul_assign(&mut self, other: Self) {
 		*self = *self * other;
+	}
+}
+impl ops::Div for Zp {
+	type Output = Self;
+	fn div(self, other: Self) -> Self {
+		Zp {
+			val: self.val / other.val,
+		}
+	}
+}
+impl ops::Neg for Zp {
+	type Output = Self;
+	fn neg(self) -> Self {
+		Zp {
+			val: PRIME as i64 - self.val,
+		}
 	}
 }
