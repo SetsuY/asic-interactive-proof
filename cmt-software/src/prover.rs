@@ -1,4 +1,4 @@
-use super::arith_circuit::{ArithCircuit, Gate};
+use super::arith_circuit::ArithCircuit;
 use super::math_helper as math;
 use super::math_helper::Zp;
 
@@ -28,17 +28,21 @@ impl<'a> Prover<'a> {
 	pub fn get_curr_wiring(&self) -> (usize, usize) {
 		self.curr_wiring
 	}
-	pub fn sum_check(&self, round: usize, r: u32) -> [u32; 3] { 
-		let mut poly: [u32; 3] = [0, 0, 0];
+	pub fn get_gate_value(&self) -> (Zp, Zp) {
+		(self.circuit.get_gate_val(self.curr_wiring.0), 
+		self.circuit.get_gate_val(self.curr_wiring.1))
+	}
+	pub fn sum_check(&mut self, round: usize, r: Zp) -> [Zp; 3] { 
+		let mut poly: [Zp; 3] = [Zp::new(0), Zp::new(0), Zp::new(0)];
 		for (i, gate) in self.circuit.get_last_layer().into_iter().enumerate() {
 			let conn_gates = gate.get_wiring();
 			let s = self.assemble_s(i, conn_gates.0, conn_gates.1);
 			// TODO: Figure out how to deal with k = 2. Bit assemble won't work.
 			for k in 0..2 {
-				let mut u = self.assemble_u(k);
-				let mut term_p = Self::calc_termp(&s, &u);
-				let mut term_l = Zp::new(0);
-				let mut term_r = Zp::new(0);
+				let u = self.assemble_u(k);
+				let term_p = Self::calc_termp(&s, &u);
+				let term_l;
+				let term_r;
 				if round <= self.num_bits {
 					term_l = self.circuit.get_gate_val(
 						self.assemble_gate_label(
@@ -53,8 +57,14 @@ impl<'a> Prover<'a> {
 						&self.rand_lbls[self.num_bits..],
 						Zp::new(k), conn_gates.1));
 				}
+				if gate.is_add() {
+					poly[k as usize] += term_p * (term_l + term_r);
+				} else {
+					poly[k as usize] += term_p * term_l * term_r;
+				}
 			}
 		}
+		self.rand_lbls.push(r);
 		poly
 	}
 	// Little endian

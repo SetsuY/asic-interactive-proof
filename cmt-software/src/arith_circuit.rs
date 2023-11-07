@@ -22,6 +22,9 @@ impl Gate {
 	pub fn get_wiring(&self) -> (usize, usize) {
 		(self.w0, self.w1)
 	}
+	pub fn is_add(&self) -> bool {
+		self.is_add
+	}
 }
 
 pub struct ArithCircuit {
@@ -98,8 +101,9 @@ impl ArithCircuit {
 			write!(stdout_lock, "\n").unwrap();
 		}
 	}
-	pub fn num_bits(&self) -> usize {
-		2usize.pow((self.circuit.len() - 1).try_into().unwrap())
+	pub fn get_inputs(&self) -> Vec<Gate> {
+		// Expensive, but just a one-off thing
+		self.circuit[self.circuit.len() - 1].clone()
 	}
 	pub fn set_curr_layer(&mut self, layer: usize) {
 		self.curr_layer = layer % (self.circuit.len() - 1);
@@ -109,6 +113,12 @@ impl ArithCircuit {
 	}
 	pub fn get_this_layer(&self) -> &Vec<Gate> {
 		&self.circuit[self.curr_layer]
+	}
+	pub fn num_gate_at_layer(&self) -> usize {
+		self.circuit[self.curr_layer].len()
+	}
+	pub fn num_layers(&self) -> usize {
+		self.circuit.len() - 1
 	}
 	pub fn next_layer(&mut self) {
 		self.set_curr_layer(self.curr_layer + 1);
@@ -125,7 +135,7 @@ impl ArithCircuit {
 			let gate = &self.circuit[self.curr_layer][gate_lbl];
 			(gate.w0, gate.w1)
 		} else {
-			(0, 0)
+			panic!("Illegal access to gate {} at layer {}", gate_lbl, self.curr_layer);
 		}
 	}
 	pub fn is_gate_add(&self, gate_lbl: usize) -> bool {
