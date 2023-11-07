@@ -51,6 +51,10 @@ impl<'a> Prover<'a> {
 		}
 		return Err(false);
 	}
+	pub fn get_rand_gate(&self) -> (usize, usize) {
+		(self.assemble_rand_label(&self.rand_lbls[0..self.num_bits]),
+		self.assemble_rand_label(&self.rand_lbls[self.num_bits..]))
+	}
 	pub fn sum_check(&mut self, round: usize, r: Zp) -> [Zp; 3] { 
 		let mut poly: [Zp; 3] = [Zp::new(0), Zp::new(0), Zp::new(0)];
 		for (i, gate) in self.circuit.get_this_layer().into_iter().enumerate() {
@@ -62,6 +66,7 @@ impl<'a> Prover<'a> {
 				let term_p = Self::calc_termp(&s, &u);
 				let term_l;
 				let term_r;
+				// TODO: Fix gate label
 				if round <= self.num_bits {
 					term_l = self.circuit.get_gate_val(
 						self.assemble_gate_label(

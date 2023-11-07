@@ -30,7 +30,6 @@ impl<'a> Verifier<'a> {
 			if !self.sum_check() {
 				return false;
 			}
-			let tau: bool = 
 		}
 		true
 	}
