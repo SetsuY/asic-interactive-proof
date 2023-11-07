@@ -127,7 +127,7 @@ impl ArithCircuit {
 		if gate_lbl < self.circuit[self.curr_layer].len() {
 			self.circuit[self.curr_layer][gate_lbl].value
 		} else {
-			panic!("Illegal access to gate {} at layer {}", gate_lbl, self.curr_layer);
+			panic!("Gate Lbl Overflow");
 		}
 	}
 	pub fn get_gate_wiring(&self, gate_lbl: usize) -> (usize, usize) {
@@ -135,7 +135,7 @@ impl ArithCircuit {
 			let gate = &self.circuit[self.curr_layer][gate_lbl];
 			(gate.w0, gate.w1)
 		} else {
-			panic!("Illegal access to gate {} at layer {}", gate_lbl, self.curr_layer);
+			panic!("Gate Lbl Overflow");
 		}
 	}
 	pub fn is_gate_add(&self, gate_lbl: usize) -> bool {

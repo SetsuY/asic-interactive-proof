@@ -32,9 +32,28 @@ impl<'a> Prover<'a> {
 		(self.circuit.get_gate_val(self.curr_wiring.0), 
 		self.circuit.get_gate_val(self.curr_wiring.1))
 	}
+	pub fn get_gate_is_add(&self) -> bool {
+		self.circuit.is_gate_add(self.curr_gate)
+	}
+	pub fn query_rand_gate(&self) -> Result<(Zp, Zp), bool> {
+		let lbl_l = self.assemble_rand_label(&self.rand_lbls[0..self.num_bits]);
+		let lbl_r = self.assemble_rand_label(&self.rand_lbls[self.num_bits..]);
+		if lbl_l >= self.circuit.num_gate_at_layer() || 
+			lbl_l >= self.circuit.num_gate_at_layer() ||
+			!self.circuit.is_gate_add(self.curr_gate) {
+			return Err(false);
+		}
+		if lbl_l == self.curr_wiring.0 && lbl_r == self.curr_wiring.1 {
+			return Ok(self.get_gate_value());
+		}
+		if lbl_l == self.curr_wiring.1 && lbl_r == self.curr_wiring.0 {
+			return Ok(self.get_gate_value());
+		}
+		return Err(false);
+	}
 	pub fn sum_check(&mut self, round: usize, r: Zp) -> [Zp; 3] { 
 		let mut poly: [Zp; 3] = [Zp::new(0), Zp::new(0), Zp::new(0)];
-		for (i, gate) in self.circuit.get_last_layer().into_iter().enumerate() {
+		for (i, gate) in self.circuit.get_this_layer().into_iter().enumerate() {
 			let conn_gates = gate.get_wiring();
 			let s = self.assemble_s(i, conn_gates.0, conn_gates.1);
 			// TODO: Figure out how to deal with k = 2. Bit assemble won't work.

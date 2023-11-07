@@ -3,7 +3,7 @@ use std::{fmt, ops, cmp};
 pub const PRIME: u32 = !0 - 1;
 pub const LOW_BIT_MASK: usize = !0 - 1;
 
-pub fn interpolate(sample_pts: &Vec<(Zp, Zp)>, tgt_pt: Zp) -> Zp {
+pub fn interpolate(sample_pts: &[(Zp, Zp)], tgt_pt: Zp) -> Zp {
 	let mut sum = Zp::new(0);
 	for j in 0..sample_pts.len() {
 		sum += sample_pts[j].1 * lagrange_poly(sample_pts, tgt_pt, j, sample_pts.len());
@@ -11,7 +11,7 @@ pub fn interpolate(sample_pts: &Vec<(Zp, Zp)>, tgt_pt: Zp) -> Zp {
 	sum
 }
 
-fn lagrange_poly(sample_pts: &Vec<(Zp, Zp)>, x: Zp, j: usize, k: usize) -> Zp {
+fn lagrange_poly(sample_pts: &[(Zp, Zp)], x: Zp, j: usize, k: usize) -> Zp {
 	let mut result = Zp::new(1);
 	for i in 0..k {
 		if i != j.try_into().unwrap() {
