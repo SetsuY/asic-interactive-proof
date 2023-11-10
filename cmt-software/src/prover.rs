@@ -20,10 +20,12 @@ impl<'a> Prover<'a> {
 			circuit: circ,
 		}
 	}
-	pub fn next_layer(&mut self, next_gate: bool) {
-		self.circuit.next_layer();
-		self.curr_gate = if next_gate {self.curr_wiring.1} else {self.curr_wiring.0};
+	pub fn next_layer(&mut self, next_gate: usize) {
+		let rand_lbls = self.get_rand_gate();
+		self.curr_gate = (rand_lbls.1 - rand_lbls.0) * next_gate + rand_lbls.0;
 		self.curr_wiring = self.circuit.get_gate_wiring(self.curr_gate);
+		self.circuit.next_layer();
+		self.rand_lbls.clear();
 	}
 	pub fn get_curr_wiring(&self) -> (usize, usize) {
 		self.curr_wiring
@@ -49,11 +51,25 @@ impl<'a> Prover<'a> {
 		if lbl_l == self.curr_wiring.1 && lbl_r == self.curr_wiring.0 {
 			return Ok(self.get_gate_value());
 		}
-		return Err(false);
+		Err(false)
 	}
 	pub fn get_rand_gate(&self) -> (usize, usize) {
 		(self.assemble_rand_label(&self.rand_lbls[0..self.num_bits]),
 		self.assemble_rand_label(&self.rand_lbls[self.num_bits..]))
+	}
+	pub fn get_all_vals(&self) -> Vec<Zp> {
+		let mut vals = Vec::new();
+		let rand_lbls = self.get_rand_gate();
+		vals.push(self.circuit.get_gate_val(rand_lbls.0));
+		vals.push(self.circuit.get_gate_val(rand_lbls.1));
+		for i in 2..(self.num_bits + 1) {
+			let curr_gate = (rand_lbls.1 - rand_lbls.0) * i + rand_lbls.0;
+			vals.push(self.circuit.get_gate_val(curr_gate));
+		}
+		vals
+	}
+	pub fn num_gate_at_layer(&self) -> usize {
+		self.circuit.num_gate_at_layer()
 	}
 	pub fn sum_check(&mut self, round: usize, r: Zp) -> [Zp; 3] { 
 		let mut poly: [Zp; 3] = [Zp::new(0), Zp::new(0), Zp::new(0)];
@@ -64,23 +80,21 @@ impl<'a> Prover<'a> {
 			for k in 0..2 {
 				let u = self.assemble_u(k);
 				let term_p = Self::calc_termp(&s, &u);
-				let term_l;
-				let term_r;
-				// TODO: Fix gate label
-				if round <= self.num_bits {
-					term_l = self.circuit.get_gate_val(
-						self.assemble_gate_label(
-						&self.rand_lbls, Zp::new(k), conn_gates.0));
-					term_r = self.circuit.get_gate_val(conn_gates.1);
+				let l_lbl;
+				let r_lbl;
+				if round < self.num_bits {
+					l_lbl = self.assemble_gate_label(
+						&self.rand_lbls, Zp::new(k), conn_gates.0);
+					r_lbl = conn_gates.1;
 				} else {
-					term_l = self.circuit.get_gate_val(
-						self.assemble_rand_label(
-						&self.rand_lbls[0..self.num_bits]));
-					term_r = self.circuit.get_gate_val(
-						self.assemble_gate_label(
+					l_lbl = self.assemble_rand_label(
+						&self.rand_lbls[0..self.num_bits]);
+					r_lbl = self.assemble_gate_label(
 						&self.rand_lbls[self.num_bits..],
-						Zp::new(k), conn_gates.1));
+						Zp::new(k), conn_gates.1);
 				}
+				let term_l = self.circuit.get_gate_val(l_lbl);
+				let term_r = self.circuit.get_gate_val(r_lbl);
 				if gate.is_add() {
 					poly[k as usize] += term_p * (term_l + term_r);
 				} else {

@@ -30,6 +30,15 @@ impl<'a> Verifier<'a> {
 			if !self.sum_check() {
 				return false;
 			}
+			println!("Layer {} Done", i);
+
+			let all_gate_vals: Vec<Zp> = self.prov.get_all_vals();
+			let rand_lbls: (usize, usize) = self.prov.get_rand_gate();
+			// We have num_bits + 1 values.
+			let rand_next = rand::random::<usize>() % (self.num_bits + 1);
+			self.curr_gate = (rand_lbls.1 - rand_lbls.0) * rand_next + rand_lbls.0;
+			self.curr_result = all_gate_vals[rand_next];
+			self.prov.next_layer(rand_next);
 		}
 		true
 	}

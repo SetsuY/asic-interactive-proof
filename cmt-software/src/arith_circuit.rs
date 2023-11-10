@@ -124,19 +124,20 @@ impl ArithCircuit {
 		self.set_curr_layer(self.curr_layer + 1);
 	}
 	pub fn get_gate_val(&self, gate_lbl: usize) -> Zp {
-		/*if gate_lbl < self.circuit[self.curr_layer].len() {
+		if gate_lbl < self.circuit[self.curr_layer].len() {
 			self.circuit[self.curr_layer][gate_lbl].value
 		} else {
-			panic!("Gate Lbl Overflow");
-		}*/
-		self.circuit[self.curr_layer][gate_lbl % self.num_gate_at_layer()].value
+			Zp::new(0)
+			// panic!("Gate Lbl Overflow");
+		}
+		// self.circuit[self.curr_layer][gate_lbl % self.num_gate_at_layer()].value
 	}
 	pub fn get_gate_wiring(&self, gate_lbl: usize) -> (usize, usize) {
 		/*if gate_lbl < self.circuit[self.curr_layer].len() {
 			let gate = &self.circuit[self.curr_layer][gate_lbl];
 			(gate.w0, gate.w1)
 		} else {
-			panic!("Gate Lbl Overflow");
+			// panic!("Gate Lbl Overflow");
 		}*/
 		let gate = &self.circuit[self.curr_layer][gate_lbl % self.num_gate_at_layer()];
 		(gate.w0, gate.w1)
