@@ -1,4 +1,5 @@
-use rand::prelude::*;
+use rand;
+use log::info;
 use super::arith_circuit;
 use super::prover;
 use super::math_helper as math;
@@ -30,17 +31,19 @@ impl<'a> Verifier<'a> {
 			if !self.sum_check() {
 				return false;
 			}
-			println!("Layer {} Done", i);
+			info!("Layer {} Done\n", i);
 
 			let all_gate_vals: Vec<Zp> = self.prov.get_all_vals();
 			let rand_lbls: (usize, usize) = self.prov.get_rand_gate();
 			// We have num_bits + 1 values.
 			let rand_next = rand::random::<usize>() % (self.num_bits + 1);
 			self.curr_gate = (rand_lbls.1 - rand_lbls.0) * rand_next + rand_lbls.0;
+			self.curr_gate %= self.prov.num_gate_at_layer();
 			self.curr_result = all_gate_vals[rand_next];
 			self.prov.next_layer(rand_next);
+			info!("Update on rand {}, gate {}, value {}", rand_next, self.curr_gate, self.curr_result);
 		}
-		true
+		self.curr_result == self.inputs[self.curr_gate % self.inputs.len()].val()
 	}
 	fn sum_check(&mut self) -> bool {
 		let mut result = self.curr_result;
@@ -49,6 +52,7 @@ impl<'a> Verifier<'a> {
 			let r = Zp::new(rand::random::<u32>() % 2);
 			let poly: [Zp; 3] = self.prov.sum_check(i, r);
 			if result != poly[0] + poly[1] {
+				info!("Reject on poly {:?}", poly);
 				return false;
 			}
 			if r == 0 {
@@ -61,8 +65,10 @@ impl<'a> Verifier<'a> {
 					  (Zp::new(1), poly[1]),
 					  (Zp::new(2), poly[2])], r);
 			}
+			info!("Round {} pass, result {}", i, result);
 		}
-		let mut a: Zp;
+		let a: Zp;
+		info!("Matching rand gate {:?}", self.prov.get_rand_gate());
 		match self.prov.query_rand_gate() {
 			Ok(val) => {
 				if self.prov.get_gate_is_add() {

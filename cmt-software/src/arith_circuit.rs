@@ -25,11 +25,14 @@ impl Gate {
 	pub fn is_add(&self) -> bool {
 		self.is_add
 	}
+	pub fn val(&self) -> Zp {
+		self.value
+	}
 }
 
 pub struct ArithCircuit {
 	circuit: Vec<Vec<Gate>>,
-	curr_layer: usize,
+	pub curr_layer: usize,
 	pub num_bits: usize,
 }
 
@@ -72,9 +75,9 @@ impl ArithCircuit {
 			circ.circuit.push(curr_layer);
 			circ.curr_layer += 1;
 		}
-		circ.curr_layer = 0;
 		circ.evaluate_circuit();
-		circ.num_bits = ((circ.circuit.len() - 1) as f64).log2().ceil() as usize;
+		circ.num_bits = circ.circuit.len() - 1;
+		circ.curr_layer = 0;
 		return circ;
 	}
 	fn evaluate_circuit(&mut self) {
@@ -106,7 +109,7 @@ impl ArithCircuit {
 		self.circuit[self.circuit.len() - 1].clone()
 	}
 	pub fn set_curr_layer(&mut self, layer: usize) {
-		self.curr_layer = layer % (self.circuit.len() - 1);
+		self.curr_layer = layer % (self.circuit.len());
 	}
 	pub fn get_last_layer(&self) -> &Vec<Gate> {
 		&self.circuit[self.curr_layer - 1]
@@ -116,6 +119,9 @@ impl ArithCircuit {
 	}
 	pub fn num_gate_at_layer(&self) -> usize {
 		self.circuit[self.curr_layer].len()
+	}
+	pub fn num_gate_at_last_layer(&self) -> usize {
+		self.circuit[self.curr_layer - 1].len()
 	}
 	pub fn num_layers(&self) -> usize {
 		self.circuit.len() - 1
@@ -143,7 +149,7 @@ impl ArithCircuit {
 		(gate.w0, gate.w1)
 	}
 	pub fn is_gate_add(&self, gate_lbl: usize) -> bool {
-		self.circuit[self.curr_layer][gate_lbl].is_add
+		self.circuit[self.curr_layer - 1][gate_lbl % self.num_gate_at_last_layer()].is_add
 	}
 }
 
