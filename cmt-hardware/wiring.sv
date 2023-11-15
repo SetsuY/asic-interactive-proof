@@ -1,25 +1,12 @@
-module WiringAdd #(
-	parameter LN_LAYER = 1,
-	parameter G = 3,
-	parameter NUM_BITS = 3,
-	parameter LN_G = 1
+module Wiring #(
+	UINT_WIDTH = 32,
+	NUM_LAYERS = 4,
+	NUM_BITS = NUM_LAYERS - 1
 	)(
-	input logic [LN_G:0] currGate,
-	input logic [LN_LAYER:0] currLayer,
-	output logic [NUM_BITS:0] connGate,
+	input logic [NUM_BITS-1:0] query_gate,
+	input logic [NUM_LAYERS-1:0] query_layer,
+	output logic [UINT_WIDTH-1:0] gate_result,
+	output logic [NUM_BITS-1:0] conn_gate [2],
 	output logic isAdd
-	);
-endmodule
-
-module WiringMul #(
-	parameter LN_LAYER = 1,
-	parameter G = 3,
-	parameter NUM_BITS = 3,
-	parameter LN_G = 1
-	)(
-	input logic [LN_G:0] currGate,
-	input logic [LN_LAYER:0] currLayer,
-	output logic [NUM_BITS:0] connGate,
-	output logic isMul
 	);
 endmodule
