@@ -87,7 +87,7 @@ module SumcheckV #(
 		end else begin
 			if(round < 2 * NUM_BITS) begin
 				if(sample_pts[0] + sample_pts[1] != 
-					round == 0 ? curr_result : e) begin
+					(round == 0 ? curr_result : e)) begin
 					accept <= 0;
 					round <= 2 * NUM_BITS + 1;
 				end else begin
