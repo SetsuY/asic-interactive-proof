@@ -47,6 +47,16 @@ pub fn into_bit_arr(n: usize, num_bits: usize) -> Vec<Zp> {
 	result
 }
 
+pub fn interpolate_next_gates(rand_lbls: &[Zp], rand_next: Zp, num_bits: usize) -> Vec<Zp> {
+	assert_eq!(rand_lbls.len(), num_bits * 2);
+	let mut next_lbl: Vec<Zp> = Vec::new();
+	let (lbl_l, lbl_r) = rand_lbls.split_at(num_bits);
+	for i in 0..lbl_l.len() {
+		next_lbl.push((lbl_r - lbl_l) * rand_next + lbl_l);
+	}
+	next_lbl
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct Zp {
 	val: i64,

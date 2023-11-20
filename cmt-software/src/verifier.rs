@@ -17,12 +17,12 @@ pub struct Verifier<'a> {
 
 impl<'a> Verifier<'a> {
 	pub fn new(circ: &'a ArithCircuit) -> Verifier {
-		let gate = rand::random::<usize>() % circ.num_gate_at_layer();
+		let gate = GateLbl::new_rand();
 		Verifier {
 			num_bits: circ.num_bits,
 			num_layers: circ.num_layers(),
-			curr_gate: GateLbl::new_rand(),
-			curr_result: circ.get_gate_val(gate),
+			curr_result: circ.mle_gate_val(gate),
+			curr_gate: gate,
 			prov: prover::Prover::new(circ, gate),
 			circuit: circ,
 		}
@@ -61,27 +61,16 @@ impl<'a> Verifier<'a> {
 			self.rand_lbls.push(r);
 			info!("Round {} pass, result {}", i, result);
 		}
-		let a: Zp;
-		info!("Matching rand gate {:?}", self.prov.get_rand_gate());
-		match self.prov.query_rand_gate() {
-			Ok(val) => {
-				if self.prov.get_gate_is_add() {
-					a = val.0 + val.1;
-				} else {
-					a = val.0 * val.1;
-				}
-			},
-			Err(_) => a = Zp::new(0),
-		}
+		let a: Zp = self.sum_calc_next_result();
+		info!("Matching rand gate {:?} = {}", self.rand_lbls, a);
 		a == result
 	}
-	fn interpolate_next(&self, rand_next: Zp) -> Vec<Zp> {
-		assert_eq!(self.rand_lbls, self.num_bits);
-		let mut next_lbl: Vec<Zp> = Vec::new();
-		let (lbl_l, lbl_r) = self.rand_lbls.split_at(self.num_bits / 2);
-		for i in 0..lbl_l.len() {
-			next_lbl.push((lbl_r - lbl_l) * rand_next + lbl_l);
-		}
-		next_lbl
+	fn sum_calc_next_result(&self) -> Zp {
+		assert_eq!(self.rand_lbls.len(), self.num_bits * 2);
+		let (lbl_l, lbl_r) = self.rand_lbls.split_at(self.num_bits);
+		let h0 = self.circuit.mle_gate_val(lbl_l);
+		let h1 = self.circuit.mle_gate_val(lbl_r);
+		self.circuit.mle_wiring(self.curr_gate, lbl_l, lbl_r, true) * (h0 + h1) +
+		self.circuit.mle_wiring(self.curr_gate, lbl_l, lbl_r, false) * h0 * h1
 	}
 }

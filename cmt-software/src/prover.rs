@@ -1,22 +1,20 @@
 use log::info;
-use super::arith_circuit::ArithCircuit;
+use super::arith_circuit::{ArithCircuit, GateLbl};
 use super::math_helper as math;
 use super::math_helper::Zp;
 
 pub struct Prover<'a>{
 	circuit: &'a ArithCircuit,
 	num_bits: usize,
-	curr_gate: usize,
-	curr_wiring: (usize, usize),
+	curr_gate: GateLbl,
 	rand_lbls: Vec<Zp>,
 }
 
 impl<'a> Prover<'a> {
-	pub fn new(circ: &'a ArithCircuit, start_lbl: usize) -> Prover {
+	pub fn new(circ: &'a ArithCircuit, start_lbl: GateLbl) -> Prover {
 		let p = Prover {
 			num_bits: circ.num_bits,
 			curr_gate: start_lbl,
-			curr_wiring: circ.get_gate_wiring(start_lbl),
 			rand_lbls: Vec::new(),
 			circuit: circ,
 		};
@@ -56,24 +54,15 @@ impl<'a> Prover<'a> {
 		}
 		Err(false)
 	}
-	pub fn get_rand_gate(&self) -> (usize, usize) {
-		let l_lbl = self.assemble_rand_label(&self.rand_lbls[0..self.num_bits]);
-		let r_lbl = self.assemble_rand_label(&self.rand_lbls[self.num_bits..]);
-		if l_lbl > r_lbl {
-			(r_lbl, l_lbl)
-		} else {
-			(l_lbl, r_lbl)
-		}
-	}
 	pub fn get_all_vals(&self) -> Vec<(Zp, Zp)> {
 		let mut vals: Vec<(Zp, Zp)> = Vec::new();
-		let gate_lim = self.num_gate_at_layer();
-		let rand_lbls = self.get_rand_gate();
-		vals.push((0, self.circuit.get_gate_val(rand_lbls.0 % gate_lim)));
-		vals.push((1, self.circuit.get_gate_val(rand_lbls.1 % gate_lim)));
+		let (lbl_l, lbl_r) = self.rand_lbls.split_at(self.num_bits);
+		vals.push((0, self.circuit.mle_gate_val(lbl_l)));
+		vals.push((1, self.circuit.mle_gate_val(lbl_r)));
 		for i in 2..(self.num_bits + 1) {
-			let curr_gate = ((rand_lbls.1 - rand_lbls.0) * i + rand_lbls.0) % gate_lim;
-			vals.push((i, self.circuit.get_gate_val(curr_gate)));
+			let curr_gate = math::interpolate_next_gates(self.rand_lbls, 
+				Zp::new(i), self.num_bits);
+			vals.push((i, self.circuit.mle_gate_val(curr_gate)));
 		}
 		vals
 	}

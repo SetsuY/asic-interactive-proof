@@ -38,7 +38,7 @@ pub struct GateLbl {
 }
 impl GateLbl {
 	pub fn new_rand(num_bits: usize) -> GateLbl {
-		let new_gate = GateLbl {
+		let mut new_gate = GateLbl {
 			lbl: Vec::new(),
 		}
 		for i in 0..num_bits {
