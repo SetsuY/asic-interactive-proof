@@ -1,13 +1,13 @@
 use rand;
 use log::info;
-use super::arith_circuit;
+use super::arith_circuit::ArithCircuit;
 use super::prover;
 use super::math_helper as math;
 use super::math_helper::Zp;
 
 pub struct Verifier<'a> {
 	prov: prover::Prover<'a>,
-	inputs: Vec<arith_circuit::Gate>,
+	circuit: &'a ArithCircuit,
 	num_bits: usize,
 	num_layers: usize,
 	curr_gate: usize,
@@ -15,15 +15,15 @@ pub struct Verifier<'a> {
 }
 
 impl<'a> Verifier<'a> {
-	pub fn new(circ: &'a mut arith_circuit::ArithCircuit) -> Verifier {
+	pub fn new(circ: &'a ArithCircuit) -> Verifier {
 		let gate = rand::random::<usize>() % circ.num_gate_at_layer();
 		Verifier {
 			num_bits: circ.num_bits,
 			num_layers: circ.num_layers(),
-			inputs: circ.get_inputs(),
 			curr_gate: gate,
 			curr_result: circ.get_gate_val(gate),
 			prov: prover::Prover::new(circ, gate),
+			circuit: circ,
 		}
 	}
 	pub fn verify(&mut self) -> bool {
@@ -43,12 +43,13 @@ impl<'a> Verifier<'a> {
 			self.prov.next_layer(rand_next);
 			info!("Update on rand {}, gate {}, value {}", rand_next, self.curr_gate, self.curr_result);
 		}
-		self.curr_result == self.inputs[self.curr_gate % self.inputs.len()].val()
+		let inputs = self.circuit.get_inputs();
+		self.curr_result == inputs[self.curr_gate % inputs.len()].val()
 	}
 	fn sum_check(&mut self) -> bool {
 		let mut result = self.curr_result;
 		for i in 0..(2 * self.num_bits) {
-			// TODO: resolve the case where r exceeds # of gates at layer
+			// let r = Zp::new_rand();
 			let r = Zp::new(rand::random::<u32>() % 2);
 			let poly: [Zp; 3] = self.prov.sum_check(i, r);
 			if result != poly[0] + poly[1] {

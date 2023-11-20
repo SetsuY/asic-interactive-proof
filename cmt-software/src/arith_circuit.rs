@@ -1,4 +1,5 @@
 use std::{fs, io::{stdout, Write}};
+pub use std::cell::RefCell;
 use super::math_helper::Zp;
 
 #[derive(Copy, Clone)]
@@ -32,7 +33,7 @@ impl Gate {
 
 pub struct ArithCircuit {
 	circuit: Vec<Vec<Gate>>,
-	pub curr_layer: usize,
+	curr_layer: RefCell<usize>,
 	pub num_bits: usize,
 }
 
@@ -44,21 +45,22 @@ impl ArithCircuit {
 		// First line output gate; Last line input values only
 		let mut circ = ArithCircuit {
 			circuit: Vec::new(),
-			curr_layer: 0,
+			curr_layer: RefCell::new(0),
 			num_bits: 0,
 		};
 		let file: String = fs::read_to_string(fname).unwrap();
 		// Parse file
 		for l in file.lines() {
 			let mut curr_layer: Vec<Gate> = Vec::new();
+			let mut layer_count = circ.curr_layer.borrow_mut();
 			if l.contains(",") {
 				for gates in l.split_whitespace() {
 					let vals: Vec<&str> = gates.split(",").collect();
 					if vals.len() != 3 {
-						panic!("Wrong format at layer {}", circ.curr_layer);
+						panic!("Wrong format at layer {}", layer_count);
 					}
 					if !(vals[2].eq("+") || vals[2].eq("*")) {
-						panic!("Wrong format at layer {}", circ.curr_layer);
+						panic!("Wrong format at layer {}", layer_count);
 					}
 					curr_layer.push(Gate::new(
 						vals[0].parse().unwrap(),
@@ -73,11 +75,11 @@ impl ArithCircuit {
 				break;
 			}
 			circ.circuit.push(curr_layer);
-			circ.curr_layer += 1;
+			*layer_count += 1;
 		}
 		circ.evaluate_circuit();
 		circ.num_bits = circ.circuit.len() - 1;
-		circ.curr_layer = 0;
+		*circ.curr_layer.borrow_mut() = 0;
 		return circ;
 	}
 	fn evaluate_circuit(&mut self) {
@@ -104,34 +106,39 @@ impl ArithCircuit {
 			write!(stdout_lock, "\n").unwrap();
 		}
 	}
-	pub fn get_inputs(&self) -> Vec<Gate> {
-		// Expensive, but just a one-off thing
-		self.circuit[self.circuit.len() - 1].clone()
+	pub fn get_inputs(&self) -> &Vec<Gate> {
+		&self.circuit[self.circuit.len() - 1]
 	}
-	pub fn set_curr_layer(&mut self, layer: usize) {
-		self.curr_layer = layer % (self.circuit.len());
+	pub fn set_curr_layer(&self, layer: usize) {
+		*self.curr_layer.borrow_mut() = layer % (self.circuit.len());
 	}
 	pub fn get_last_layer(&self) -> &Vec<Gate> {
-		&self.circuit[self.curr_layer - 1]
+		let layer_count = *self.curr_layer.borrow();
+		&self.circuit[layer_count - 1]
 	}
 	pub fn get_this_layer(&self) -> &Vec<Gate> {
-		&self.circuit[self.curr_layer]
+		let layer_count = *self.curr_layer.borrow();
+		&self.circuit[layer_count]
 	}
 	pub fn num_gate_at_layer(&self) -> usize {
-		self.circuit[self.curr_layer].len()
+		let layer_count = *self.curr_layer.borrow();
+		self.circuit[layer_count].len()
 	}
 	pub fn num_gate_at_last_layer(&self) -> usize {
-		self.circuit[self.curr_layer - 1].len()
+		let layer_count = *self.curr_layer.borrow();
+		self.circuit[layer_count - 1].len()
 	}
 	pub fn num_layers(&self) -> usize {
 		self.circuit.len() - 1
 	}
-	pub fn next_layer(&mut self) {
-		self.set_curr_layer(self.curr_layer + 1);
+	pub fn next_layer(&self) {
+		let layer_count = *self.curr_layer.borrow();
+		self.set_curr_layer(layer_count + 1);
 	}
 	pub fn get_gate_val(&self, gate_lbl: usize) -> Zp {
-		if gate_lbl < self.circuit[self.curr_layer].len() {
-			self.circuit[self.curr_layer][gate_lbl].value
+		let layer_count = *self.curr_layer.borrow();
+		if gate_lbl < self.circuit[layer_count].len() {
+			self.circuit[layer_count][gate_lbl].value
 		} else {
 			Zp::new(0)
 			// panic!("Gate Lbl Overflow");
@@ -145,11 +152,13 @@ impl ArithCircuit {
 		} else {
 			// panic!("Gate Lbl Overflow");
 		}*/
-		let gate = &self.circuit[self.curr_layer][gate_lbl % self.num_gate_at_layer()];
+		let layer_count = *self.curr_layer.borrow();
+		let gate = &self.circuit[layer_count][gate_lbl % self.num_gate_at_layer()];
 		(gate.w0, gate.w1)
 	}
 	pub fn is_gate_add(&self, gate_lbl: usize) -> bool {
-		self.circuit[self.curr_layer - 1][gate_lbl % self.num_gate_at_last_layer()].is_add
+		let layer_count = *self.curr_layer.borrow();
+		self.circuit[layer_count - 1][gate_lbl % self.num_gate_at_last_layer()].is_add
 	}
 }
 

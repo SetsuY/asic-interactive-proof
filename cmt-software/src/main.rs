@@ -3,11 +3,11 @@ use cmt_software::runner;
 
 fn main() {
 	env_logger::init();
-	let mut circ = circuit::ArithCircuit::new("circ.txt");
+	let circ = circuit::ArithCircuit::new("circ.txt");
 	println!("Circuit\n------------------------------------------");
 	circ.print_circuit();
 	println!("------------------------------------------");
-	if runner::run(&mut circ) {
+	if runner::run(&circ) {
 		println!("Accept");
 	} else {
 		println!("Reject");

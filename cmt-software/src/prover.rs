@@ -4,7 +4,7 @@ use super::math_helper as math;
 use super::math_helper::Zp;
 
 pub struct Prover<'a>{
-	circuit: &'a mut ArithCircuit,
+	circuit: &'a ArithCircuit,
 	num_bits: usize,
 	curr_gate: usize,
 	curr_wiring: (usize, usize),
@@ -12,7 +12,7 @@ pub struct Prover<'a>{
 }
 
 impl<'a> Prover<'a> {
-	pub fn new(circ: &'a mut ArithCircuit, start_lbl: usize) -> Prover {
+	pub fn new(circ: &'a ArithCircuit, start_lbl: usize) -> Prover {
 		let p = Prover {
 			num_bits: circ.num_bits,
 			curr_gate: start_lbl,
@@ -158,16 +158,15 @@ impl<'a> Prover<'a> {
 	fn calc_termp(s: &[Zp], u: &[Zp]) -> Zp {
 		let mut term_p = Zp::new(1);
 		for i in 0..u.len() {
-			// term_p *= Self::x(s[i], u[i]);
-			term_p *= if s[i] == u[i] {Zp::new(1)} else {Zp::new(0)};
+			term_p *= Self::x(s[i], u[i]);
 		}
 		term_p
 	}
-	/*fn x(s: Zp, u: Zp) -> Zp {
+	fn x(s: Zp, u: Zp) -> Zp {
 		if s == 1 {
 			u
 		} else {
 			-u + Zp::new(1)
 		}
-	}*/
+	}
 }

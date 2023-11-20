@@ -1,4 +1,5 @@
 use std::{fmt, ops, cmp};
+use rand;
 
 pub const PRIME: u32 = !0 - 1;
 pub const LOW_BIT_MASK: usize = !0 - 1;
@@ -38,6 +39,11 @@ impl Zp {
 	pub fn new(n: u32) -> Zp {
 		Zp {
 			val: (n as i64) % (PRIME as i64),
+		}
+	}
+	pub fn new_rand() -> Zp {
+		Zp {
+			val: rand::random(),
 		}
 	}
 	pub fn val(&self) -> u32 {
@@ -91,8 +97,9 @@ impl ops::Sub for Zp {
 impl ops::Mul for Zp {
 	type Output = Self;
 	fn mul(self, other: Self) -> Self {
+		let result: u128 = (self.val as u128 * other.val as u128) % (PRIME as u128);
 		Zp {
-			val: (self.val * other.val) % PRIME as i64,
+			val: result as i64,
 		}
 	}
 }
