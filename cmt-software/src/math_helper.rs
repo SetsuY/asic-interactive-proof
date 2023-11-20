@@ -30,11 +30,27 @@ pub fn get_bit(n: usize, bit: usize) -> usize {
 	bic(n >> bit, LOW_BIT_MASK)
 }
 
+pub fn mle_interpolate(w: &[Zp], x: &[Zp]) -> Zp {
+	assert_eq(w.len(), x.len());
+	let mut result = Zp::new(1);
+	for i in 0..w.len() {
+		result *= x[i] * w[i] + (Zp::new(1) - x[i]) * (Zp::new(1) - w[i]);
+	}
+	result
+}
+
+pub fn into_bit_arr(n: usize, num_bits: usize) -> Vec<Zp> {
+	let mut result: Vec<Zp> = Vec::new();
+	for i in 0..num_bits {
+		result.push(get_bit(n, i));
+	}
+	result
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct Zp {
 	val: i64,
 }
-
 impl Zp {
 	pub fn new(n: u32) -> Zp {
 		Zp {

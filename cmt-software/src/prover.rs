@@ -65,15 +65,15 @@ impl<'a> Prover<'a> {
 			(l_lbl, r_lbl)
 		}
 	}
-	pub fn get_all_vals(&self) -> Vec<Zp> {
-		let mut vals = Vec::new();
+	pub fn get_all_vals(&self) -> Vec<(Zp, Zp)> {
+		let mut vals: Vec<(Zp, Zp)> = Vec::new();
 		let gate_lim = self.num_gate_at_layer();
 		let rand_lbls = self.get_rand_gate();
-		vals.push(self.circuit.get_gate_val(rand_lbls.0 % gate_lim));
-		vals.push(self.circuit.get_gate_val(rand_lbls.1 % gate_lim));
+		vals.push((0, self.circuit.get_gate_val(rand_lbls.0 % gate_lim)));
+		vals.push((1, self.circuit.get_gate_val(rand_lbls.1 % gate_lim)));
 		for i in 2..(self.num_bits + 1) {
 			let curr_gate = ((rand_lbls.1 - rand_lbls.0) * i + rand_lbls.0) % gate_lim;
-			vals.push(self.circuit.get_gate_val(curr_gate));
+			vals.push((i, self.circuit.get_gate_val(curr_gate)));
 		}
 		vals
 	}

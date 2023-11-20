@@ -1,6 +1,6 @@
 use rand;
 use log::info;
-use super::arith_circuit::ArithCircuit;
+use super::arith_circuit::{ArithCircuit, GateLbl};
 use super::prover;
 use super::math_helper as math;
 use super::math_helper::Zp;
@@ -10,8 +10,9 @@ pub struct Verifier<'a> {
 	circuit: &'a ArithCircuit,
 	num_bits: usize,
 	num_layers: usize,
-	curr_gate: usize,
+	curr_gate: GateLbl,
 	curr_result: Zp,
+	rand_lbls: Vec<Zp>,
 }
 
 impl<'a> Verifier<'a> {
@@ -20,7 +21,7 @@ impl<'a> Verifier<'a> {
 		Verifier {
 			num_bits: circ.num_bits,
 			num_layers: circ.num_layers(),
-			curr_gate: gate,
+			curr_gate: GateLbl::new_rand(),
 			curr_result: circ.get_gate_val(gate),
 			prov: prover::Prover::new(circ, gate),
 			circuit: circ,
@@ -33,10 +34,8 @@ impl<'a> Verifier<'a> {
 			}
 			info!("Layer {} Done\n", i);
 
-			let all_gate_vals: Vec<Zp> = self.prov.get_all_vals();
-			let rand_lbls: (usize, usize) = self.prov.get_rand_gate();
-			// We have num_bits + 1 values.
-			let rand_next = rand::random::<usize>() % (self.num_bits + 1);
+			let all_gate_vals: Vec<(Zp, Zp)> = self.prov.get_all_vals();
+			let rand_next = Zp::new_rand();
 			self.curr_gate = (rand_lbls.1 - rand_lbls.0) * rand_next + rand_lbls.0;
 			self.curr_gate %= self.prov.num_gate_at_layer();
 			self.curr_result = all_gate_vals[rand_next];
@@ -49,23 +48,17 @@ impl<'a> Verifier<'a> {
 	fn sum_check(&mut self) -> bool {
 		let mut result = self.curr_result;
 		for i in 0..(2 * self.num_bits) {
-			// let r = Zp::new_rand();
-			let r = Zp::new(rand::random::<u32>() % 2);
+			let r = Zp::new_rand();
 			let poly: [Zp; 3] = self.prov.sum_check(i, r);
 			if result != poly[0] + poly[1] {
 				info!("Reject on poly {:?}", poly);
 				return false;
 			}
-			if r == 0 {
-				result = poly[0];
-			} else if r == 1 {
-				result = poly[1];
-			} else {
-				result = math::interpolate(
-					&[(Zp::new(0), poly[0]),
-					  (Zp::new(1), poly[1]),
-					  (Zp::new(2), poly[2])], r);
-			}
+			result = math::interpolate(
+				&[(Zp::new(0), poly[0]),
+				  (Zp::new(1), poly[1]),
+				  (Zp::new(2), poly[2])], r);
+			self.rand_lbls.push(r);
 			info!("Round {} pass, result {}", i, result);
 		}
 		let a: Zp;
@@ -81,5 +74,14 @@ impl<'a> Verifier<'a> {
 			Err(_) => a = Zp::new(0),
 		}
 		a == result
+	}
+	fn interpolate_next(&self, rand_next: Zp) -> Vec<Zp> {
+		assert_eq!(self.rand_lbls, self.num_bits);
+		let mut next_lbl: Vec<Zp> = Vec::new();
+		let (lbl_l, lbl_r) = self.rand_lbls.split_at(self.num_bits / 2);
+		for i in 0..lbl_l.len() {
+			next_lbl.push((lbl_r - lbl_l) * rand_next + lbl_l);
+		}
+		next_lbl
 	}
 }

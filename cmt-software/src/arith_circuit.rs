@@ -1,5 +1,7 @@
 use std::{fs, io::{stdout, Write}};
+use std::ops::Deref;
 pub use std::cell::RefCell;
+use super::math_helper as math;
 use super::math_helper::Zp;
 
 #[derive(Copy, Clone)]
@@ -28,6 +30,30 @@ impl Gate {
 	}
 	pub fn val(&self) -> Zp {
 		self.value
+	}
+}
+
+pub struct GateLbl {
+	lbl: Vec<Zp>,
+}
+impl GateLbl {
+	pub fn new_rand(num_bits: usize) -> GateLbl {
+		let new_gate = GateLbl {
+			lbl: Vec::new(),
+		}
+		for i in 0..num_bits {
+			new_gate.lbl.push(Zp::new_rand());
+		}
+		new_gate
+	}
+	pub fn push(&mut self, val: Zp) {
+		self.lbl.push(val);
+	}
+}
+impl Deref for GateLbl {
+	type Target = Vec<Zp>;
+	fn deref(&self) -> &Self::Target {
+		&self.lbl
 	}
 }
 
@@ -159,6 +185,31 @@ impl ArithCircuit {
 	pub fn is_gate_add(&self, gate_lbl: usize) -> bool {
 		let layer_count = *self.curr_layer.borrow();
 		self.circuit[layer_count - 1][gate_lbl % self.num_gate_at_last_layer()].is_add
+	}
+	pub fn mle_gate_val(&self, gate: GateLbl) -> Zp {
+		let mut val = Zp::new(0);
+		for (i, &gate) in self.get_this_layer().into_iter().enumerate() {
+			let orig_bits = math::into_bit_arr(i, self.num_bits);
+			val += gate.val() * math::mle_interpolate(orig_bits, gate);
+		}
+		val
+	}
+	pub fn mle_wiring(&self, gate: &GateLbl, w0: &GateLbl, w1: &GateLbl, add: bool) -> Zp {
+		let mut val = Zp::new(0);
+		for (i, &gate) in self.get_last_layer().into_iter().enumerate() {
+			if gate.is_add() == add {
+				let conn_gates = gate.get_wiring();
+				let mut combined_label: Vec<Zp> = math::into_bit_arr(i, self.num_bits);
+				combined_label.extend(math::into_bit_arr(conn_gates.0, self.num_bits));
+				combined_label.extend(math::into_bit_arr(conn_gates.1, self.num_bits));
+				let mut query_lbl: Vec<Zp> = Vec::new();
+				query_lbl.extend(gate);
+				query_lbl.extend(w0);
+				query_lbl.extend(w1);
+				val += math::mle_interpolate(combined_label, query_lbl);
+			}
+		}
+		val
 	}
 }
 
