@@ -31,7 +31,7 @@ pub fn get_bit(n: usize, bit: usize) -> usize {
 }
 
 pub fn mle_interpolate(w: &[Zp], x: &[Zp]) -> Zp {
-	assert_eq(w.len(), x.len());
+	assert_eq!(w.len(), x.len());
 	let mut result = Zp::new(1);
 	for i in 0..w.len() {
 		result *= x[i] * w[i] + (Zp::new(1) - x[i]) * (Zp::new(1) - w[i]);
@@ -42,7 +42,7 @@ pub fn mle_interpolate(w: &[Zp], x: &[Zp]) -> Zp {
 pub fn into_bit_arr(n: usize, num_bits: usize) -> Vec<Zp> {
 	let mut result: Vec<Zp> = Vec::new();
 	for i in 0..num_bits {
-		result.push(get_bit(n, i));
+		result.push(Zp::new(get_bit(n, i) as u32));
 	}
 	result
 }
@@ -52,7 +52,7 @@ pub fn interpolate_next_gates(rand_lbls: &[Zp], rand_next: Zp, num_bits: usize) 
 	let mut next_lbl: Vec<Zp> = Vec::new();
 	let (lbl_l, lbl_r) = rand_lbls.split_at(num_bits);
 	for i in 0..lbl_l.len() {
-		next_lbl.push((lbl_r - lbl_l) * rand_next + lbl_l);
+		next_lbl.push((lbl_r[i] - lbl_l[i]) * rand_next + lbl_l[i]);
 	}
 	next_lbl
 }

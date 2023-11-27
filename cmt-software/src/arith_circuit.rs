@@ -1,5 +1,4 @@
 use std::{fs, io::{stdout, Write}};
-use std::ops::Deref;
 pub use std::cell::RefCell;
 use super::math_helper as math;
 use super::math_helper::Zp;
@@ -122,14 +121,6 @@ impl ArithCircuit {
 		let layer_count = *self.curr_layer.borrow();
 		&self.circuit[layer_count]
 	}
-	pub fn num_gate_at_layer(&self) -> usize {
-		let layer_count = *self.curr_layer.borrow();
-		self.circuit[layer_count].len()
-	}
-	pub fn num_gate_at_last_layer(&self) -> usize {
-		let layer_count = *self.curr_layer.borrow();
-		self.circuit[layer_count - 1].len()
-	}
 	pub fn num_layers(&self) -> usize {
 		self.circuit.len() - 1
 	}
@@ -139,38 +130,28 @@ impl ArithCircuit {
 	}
 	pub fn get_gate_val(&self, gate_lbl: usize) -> Zp {
 		let layer_count = *self.curr_layer.borrow();
-		if gate_lbl < self.circuit[layer_count].len() {
-			self.circuit[layer_count][gate_lbl].value
-		} else {
-			Zp::new(0)
-			// panic!("Gate Lbl Overflow");
-		}
-		// self.circuit[self.curr_layer][gate_lbl % self.num_gate_at_layer()].value
+		self.circuit[layer_count][gate_lbl].value
 	}
 	pub fn get_gate_wiring(&self, gate_lbl: usize) -> (usize, usize) {
-		/*if gate_lbl < self.circuit[self.curr_layer].len() {
-			let gate = &self.circuit[self.curr_layer][gate_lbl];
-			(gate.w0, gate.w1)
-		} else {
-			// panic!("Gate Lbl Overflow");
-		}*/
 		let layer_count = *self.curr_layer.borrow();
-		let gate = &self.circuit[layer_count][gate_lbl % self.num_gate_at_layer()];
+		let gate = &self.circuit[layer_count][gate_lbl];
 		(gate.w0, gate.w1)
 	}
 	pub fn is_gate_add(&self, gate_lbl: usize) -> bool {
 		let layer_count = *self.curr_layer.borrow();
-		self.circuit[layer_count - 1][gate_lbl % self.num_gate_at_last_layer()].is_add
+		self.circuit[layer_count - 1][gate_lbl].is_add
 	}
 	pub fn mle_gate_val(&self, query_gate: &[Zp]) -> Zp {
+		assert_eq!(self.num_bits, query_gate.len());
 		let mut val = Zp::new(0);
 		for (i, &gate) in self.get_this_layer().into_iter().enumerate() {
 			let orig_bits = math::into_bit_arr(i, self.num_bits);
-			val += gate.val() * math::mle_interpolate(orig_bits, query_gate);
+			val += gate.val() * math::mle_interpolate(&orig_bits, query_gate);
 		}
 		val
 	}
 	pub fn mle_wiring(&self, query_gate: &[Zp], w0: &[Zp], w1: &[Zp], add: bool) -> Zp {
+		assert_eq!(self.num_bits, query_gate.len());
 		let mut val = Zp::new(0);
 		for (i, &gate) in self.get_last_layer().into_iter().enumerate() {
 			if gate.is_add() == add {
@@ -182,7 +163,7 @@ impl ArithCircuit {
 				query_lbl.extend(query_gate);
 				query_lbl.extend(w0);
 				query_lbl.extend(w1);
-				val += math::mle_interpolate(combined_label, query_lbl);
+				val += math::mle_interpolate(&combined_label, &query_lbl);
 			}
 		}
 		val
