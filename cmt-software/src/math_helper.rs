@@ -123,7 +123,9 @@ impl ops::Sub for Zp {
 impl ops::Mul for Zp {
 	type Output = Self;
 	fn mul(self, other: Self) -> Self {
-		let result: u128 = (self.val as u128 * other.val as u128) % (PRIME as u128);
+		let l = self.val as u32;
+		let r = other.val as u32;
+		let result = ((l as u128) * (r as u128) % (PRIME as u128)) as u32;
 		Zp {
 			val: result as i64,
 		}
