@@ -1,6 +1,5 @@
-use rand;
 use log::info;
-use super::arith_circuit::{ArithCircuit, GateLbl};
+use super::arith_circuit::{ArithCircuit};
 use super::prover;
 use super::math_helper as math;
 use super::math_helper::Zp;
@@ -10,22 +9,25 @@ pub struct Verifier<'a> {
 	circuit: &'a ArithCircuit,
 	num_bits: usize,
 	num_layers: usize,
-	curr_gate: GateLbl,
+	curr_gate: Vec<Zp>,
 	curr_result: Zp,
 	rand_lbls: Vec<Zp>,
 }
 
 impl<'a> Verifier<'a> {
 	pub fn new(circ: &'a ArithCircuit) -> Verifier {
-		let gate = GateLbl::new_rand();
-		Verifier {
+		let mut v = Verifier {
 			num_bits: circ.num_bits,
 			num_layers: circ.num_layers(),
 			curr_result: circ.mle_gate_val(gate),
-			curr_gate: gate,
+			curr_gate: Vec::new(),
 			prov: prover::Prover::new(circ, gate),
 			circuit: circ,
+		};
+		for i in 0..v.num_bits {
+			v.curr_gate.push(Zp::new_rand());
 		}
+		v
 	}
 	pub fn verify(&mut self) -> bool {
 		for i in 1..(self.num_layers + 1) {
@@ -36,14 +38,13 @@ impl<'a> Verifier<'a> {
 
 			let all_gate_vals: Vec<(Zp, Zp)> = self.prov.get_all_vals();
 			let rand_next = Zp::new_rand();
-			self.curr_gate = (rand_lbls.1 - rand_lbls.0) * rand_next + rand_lbls.0;
-			self.curr_gate %= self.prov.num_gate_at_layer();
-			self.curr_result = all_gate_vals[rand_next];
+			self.curr_gate = math::interpolate_next_gates(self.rand_lbls, rand_next, self.num_bits);
+			self.curr_result = math::interpolate(all_gate_vals, rand_next);
 			self.prov.next_layer(rand_next);
+			self.rand_lbls.clear();
 			info!("Update on rand {}, gate {}, value {}", rand_next, self.curr_gate, self.curr_result);
 		}
-		let inputs = self.circuit.get_inputs();
-		self.curr_result == inputs[self.curr_gate % inputs.len()].val()
+		self.curr_result == self.circuit.mle_gate_val(self.curr_gate);
 	}
 	fn sum_check(&mut self) -> bool {
 		let mut result = self.curr_result;
