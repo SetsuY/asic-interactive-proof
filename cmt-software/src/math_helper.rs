@@ -1,30 +1,23 @@
 use std::{fmt, ops, cmp};
 use rand;
 
-pub const PRIME: u32 = !0 - 1;
+// PRIME = M31
+pub const PRIME: u32 = 2147483647; 
 pub const LOW_BIT_MASK: usize = !0 - 1;
 
 pub fn interpolate(sample_pts: &[(Zp, Zp)], tgt_pt: Zp) -> Zp {
-	let mut sum: i128 = 0;
+	let mut sum = Zp::new(0);
 	for j in 0..sample_pts.len() {
-		sum += sample_pts[j].1.val() as i128 * 
-			lagrange_poly(sample_pts, tgt_pt, j, sample_pts.len());
+		sum += sample_pts[j].1 * lagrange_poly(sample_pts, tgt_pt, j, sample_pts.len());
 	}
-	sum = sum % PRIME as i128;
-	if sum < 0 {
-		sum += PRIME as i128;
-	}
-	Zp::new(sum as u32)
+	sum
 }
 
-fn lagrange_poly(sample_pts: &[(Zp, Zp)], x: Zp, j: usize, k: usize) -> i128 {
-	let mut result: i128 = 1;
+fn lagrange_poly(sample_pts: &[(Zp, Zp)], x: Zp, j: usize, k: usize) -> Zp {
+	let mut result = Zp::new(1);
 	for i in 0..k {
 		if i != j.try_into().unwrap() {
-			let x_val = x.val() as i128;
-			let i_val = sample_pts[i].0.val() as i128;
-			let j_val = sample_pts[j].0.val() as i128;
-			result *= (x_val - i_val) / (j_val - i_val);
+			result *= (x - sample_pts[i].0) / (sample_pts[j].0 - sample_pts[i].0);
 		}
 	}
 	result
@@ -145,9 +138,9 @@ impl ops::MulAssign for Zp {
 impl ops::Div for Zp {
 	type Output = Self;
 	fn div(self, other: Self) -> Self {
-		Zp {
-			val: self.val / other.val,
-		}
+		// First use Extended Eucidean to find other^-1
+		let mul_inv = Zp::new(ext_eucidean(other.val()));
+		self * mul_inv
 	}
 }
 impl ops::Neg for Zp {
@@ -156,5 +149,29 @@ impl ops::Neg for Zp {
 		Zp {
 			val: PRIME as i64 - self.val,
 		}
+	}
+}
+// Returns x in ax + PRIME*y=1
+fn ext_eucidean(a: u32) -> u32 {
+	let mut r_last = a as i64;
+	let mut r_this = PRIME as i64;
+	let mut r_next;
+	let mut q: i64;
+
+	let mut s_last: i64 = 1;
+	let mut s_this: i64 = 0;
+	let mut s_next;
+	loop {
+		q = r_last / r_this;
+		r_next = r_last % r_this;
+		s_next = s_last - s_this * q;
+		if r_next == 0 {
+			return if s_this >= 0 {s_this as u32} else {(PRIME as i64 + s_this) as u32};
+		}
+
+		r_last = r_this;
+		r_this = r_next;
+		s_last = s_this;
+		s_this = s_next;
 	}
 }

@@ -38,7 +38,12 @@ impl<'a> Verifier<'a> {
 			}
 			info!("Layer {} Done\n", i);
 
-			let all_gate_vals: Vec<(Zp, Zp)> = self.prov.get_all_vals();
+			let (h0, h1) = self.prov.get_rand_val();
+			let mut all_gate_vals = Vec::new();
+			all_gate_vals.push((Zp::new(0), h0));
+			all_gate_vals.push((Zp::new(1), h1));
+			all_gate_vals.extend(self.prov.get_all_vals());
+			info!("All hi {:?}", all_gate_vals);
 			let rand_next = Zp::new_rand();
 			self.curr_gate = math::interpolate_next_gates(&self.rand_lbls, rand_next, self.num_bits);
 			self.curr_result = math::interpolate(&all_gate_vals, rand_next);
@@ -72,10 +77,8 @@ impl<'a> Verifier<'a> {
 		a == result
 	}
 	fn sum_calc_next_result(&self) -> Zp {
-		assert_eq!(self.rand_lbls.len(), self.num_bits * 2);
 		let (lbl_l, lbl_r) = self.rand_lbls.split_at(self.num_bits);
-		let h0 = self.circuit.mle_gate_val(lbl_l);
-		let h1 = self.circuit.mle_gate_val(lbl_r);
+		let (h0, h1) = self.prov.get_rand_val();
 		self.circuit.mle_wiring(&self.curr_gate, lbl_l, lbl_r, true) * (h0 + h1) +
 		self.circuit.mle_wiring(&self.curr_gate, lbl_l, lbl_r, false) * h0 * h1
 	}

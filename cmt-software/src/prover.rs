@@ -27,15 +27,18 @@ impl<'a> Prover<'a> {
 	}
 	pub fn get_all_vals(&self) -> Vec<(Zp, Zp)> {
 		let mut vals: Vec<(Zp, Zp)> = Vec::new();
-		let (lbl_l, lbl_r) = self.rand_lbls.split_at(self.num_bits);
-		vals.push((Zp::new(0), self.circuit.mle_gate_val(lbl_l)));
-		vals.push((Zp::new(1), self.circuit.mle_gate_val(lbl_r)));
 		for i in 2..(self.num_bits + 1) {
 			let curr_gate = math::interpolate_next_gates(&self.rand_lbls, 
 				Zp::new(i as u32), self.num_bits);
 			vals.push((Zp::new(i as u32), self.circuit.mle_gate_val(&curr_gate)));
 		}
 		vals
+	}
+	pub fn get_rand_val(&self) -> (Zp, Zp) {
+		assert_eq!(self.rand_lbls.len(), self.num_bits * 2);
+		let (lbl_l, lbl_r) = self.rand_lbls.split_at(self.num_bits);
+		(self.circuit.mle_gate_val(lbl_l), 
+		self.circuit.mle_gate_val(lbl_r))
 	}
 	pub fn sum_check(&mut self, round: usize, r: Zp) -> [Zp; 3] { 
 		let mut poly: [Zp; 3] = [Zp::new(0), Zp::new(0), Zp::new(0)];
