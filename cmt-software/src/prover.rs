@@ -66,7 +66,7 @@ impl<'a> Prover<'a> {
 				} else {
 					poly[k as usize] += term_p * term_l * term_r;
 				}
-				info!("Gate {}, {} {} {}", i, term_p, term_l, term_r);
+				info!("Gate {}, p{} l{} r{}", i, term_p, term_l, term_r);
 			}
 		}
 		self.rand_lbls.push(r);

@@ -68,9 +68,7 @@ impl Zp {
 		}
 	}
 	pub fn new_rand() -> Zp {
-		Zp {
-			val: rand::random(),
-		}
+		Zp::new(rand::random())
 	}
 	pub fn val(&self) -> u32 {
 		self.val as u32

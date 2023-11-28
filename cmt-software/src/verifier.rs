@@ -17,9 +17,10 @@ pub struct Verifier<'a> {
 impl<'a> Verifier<'a> {
 	pub fn new(circ: &'a ArithCircuit) -> Verifier {
 		let mut start_lbl = Vec::new();
-		for i in 0..circ.num_bits {
+		for _i in 0..circ.num_bits {
 			start_lbl.push(Zp::new_rand());
 		}
+		info!("Start gate {:?}", start_lbl);
 		Verifier {
 			num_bits: circ.num_bits,
 			num_layers: circ.num_layers(),
@@ -53,7 +54,7 @@ impl<'a> Verifier<'a> {
 			let r = Zp::new_rand();
 			let poly: [Zp; 3] = self.prov.sum_check(i, r);
 			if result != poly[0] + poly[1] {
-				info!("Reject on poly {:?}", poly);
+				info!("Reject on poly {:?}, expecting {}", poly, result);
 				return false;
 			}
 			result = math::interpolate(
