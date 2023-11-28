@@ -42,7 +42,9 @@ impl<'a> Verifier<'a> {
 			let rand_next = Zp::new_rand();
 			self.curr_gate = math::interpolate_next_gates(&self.rand_lbls, rand_next, self.num_bits);
 			self.curr_result = math::interpolate(&all_gate_vals, rand_next);
-			self.prov.next_layer(rand_next);
+			if i != self.num_layers {
+				self.prov.next_layer(rand_next);
+			}
 			self.rand_lbls.clear();
 			info!("Update on rand {:?}, gate {:?}, value {}", rand_next, self.curr_gate, self.curr_result);
 		}
@@ -57,6 +59,7 @@ impl<'a> Verifier<'a> {
 				info!("Reject on poly {:?}, expecting {}", poly, result);
 				return false;
 			}
+			info!("Got poly {:?}, interpolate on {}", poly, r);
 			result = math::interpolate(
 				&[(Zp::new(0), poly[0]),
 				  (Zp::new(1), poly[1]),
