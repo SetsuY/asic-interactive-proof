@@ -1,3 +1,4 @@
+use std::time::{Duration, Instant};
 use log::info;
 use super::arith_circuit::{ArithCircuit};
 use super::math_helper as math;
@@ -8,6 +9,7 @@ pub struct Prover<'a>{
 	num_bits: usize,
 	curr_gate: Vec<Zp>,
 	rand_lbls: Vec<Zp>,
+	pub sumcheck_time: Duration,
 }
 
 impl<'a> Prover<'a> {
@@ -18,6 +20,7 @@ impl<'a> Prover<'a> {
 			curr_gate: start_lbl,
 			rand_lbls: Vec::new(),
 			circuit: circ,
+			sumcheck_time: Duration::ZERO,
 		}
 	}
 	pub fn next_layer(&mut self, next_gate: Zp) {
@@ -41,6 +44,7 @@ impl<'a> Prover<'a> {
 		self.circuit.mle_gate_val(lbl_r))
 	}
 	pub fn sum_check(&mut self, round: usize, r: Zp) -> [Zp; 3] { 
+		let now = Instant::now();
 		let mut poly: [Zp; 3] = [Zp::new(0), Zp::new(0), Zp::new(0)];
 		for (i, &gate) in self.circuit.get_last_layer().into_iter().enumerate() {
 			let conn_gates = gate.get_wiring();
@@ -73,6 +77,7 @@ impl<'a> Prover<'a> {
 			}
 		}
 		self.rand_lbls.push(r);
+		self.sumcheck_time += now.elapsed();
 		poly
 	}
 	// Little endian

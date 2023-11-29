@@ -1,3 +1,4 @@
+use std::time::{Duration, Instant};
 use log::info;
 use super::arith_circuit::{ArithCircuit};
 use super::prover;
@@ -12,6 +13,7 @@ pub struct Verifier<'a> {
 	curr_gate: Vec<Zp>,
 	curr_result: Zp,
 	rand_lbls: Vec<Zp>,
+	sumcheck_runtime: Duration,
 }
 
 impl<'a> Verifier<'a> {
@@ -29,6 +31,7 @@ impl<'a> Verifier<'a> {
 			curr_gate: start_lbl,
 			circuit: circ,
 			rand_lbls: Vec::new(),
+			sumcheck_runtime: Duration::ZERO,
 		}
 	}
 	pub fn verify(&mut self) -> bool {
@@ -53,9 +56,12 @@ impl<'a> Verifier<'a> {
 			self.rand_lbls.clear();
 			info!("Update on rand {:?}, gate {:?}, value {}", rand_next, self.curr_gate, self.curr_result);
 		}
+		println!("Prover Sumcheck Time: {}ns", self.prov.sumcheck_time.as_nanos());
+		println!("Verifier Sumcheck Time: {}ns", self.sumcheck_runtime.as_nanos());
 		self.curr_result == self.circuit.mle_gate_val(&self.curr_gate)
 	}
 	fn sum_check(&mut self) -> bool {
+		let now = Instant::now();
 		let mut result = self.curr_result;
 		for i in 0..(2 * self.num_bits) {
 			let r = Zp::new_rand();
@@ -74,6 +80,7 @@ impl<'a> Verifier<'a> {
 		}
 		let a: Zp = self.sum_calc_next_result();
 		info!("Matching rand gate {:?} = {}", self.rand_lbls, a);
+		self.sumcheck_runtime += now.elapsed();
 		a == result
 	}
 	fn sum_calc_next_result(&self) -> Zp {
