@@ -6,9 +6,9 @@ fn main() {
 	let now = Instant::now();
 	env_logger::init();
 	let circ = circuit::ArithCircuit::new("circ.txt");
-	println!("Circuit\n------------------------------------------");
+	/*println!("Circuit\n------------------------------------------");
 	circ.print_circuit();
-	println!("------------------------------------------");
+	println!("------------------------------------------");*/
 	if runner::run(&circ) {
 		println!("Accept");
 	} else {

@@ -1,5 +1,5 @@
 use std::time::{Duration, Instant};
-use log::info;
+use log::{info, trace};
 use super::arith_circuit::{ArithCircuit};
 use super::prover;
 use super::math_helper as math;
@@ -22,7 +22,7 @@ impl<'a> Verifier<'a> {
 		for _i in 0..circ.num_bits {
 			start_lbl.push(Zp::new_rand());
 		}
-		info!("Start gate {:?}", start_lbl);
+		trace!("Start gate {:?}", start_lbl);
 		Verifier {
 			num_bits: circ.num_bits,
 			num_layers: circ.num_layers(),
@@ -46,7 +46,7 @@ impl<'a> Verifier<'a> {
 			all_gate_vals.push((Zp::new(0), h0));
 			all_gate_vals.push((Zp::new(1), h1));
 			all_gate_vals.extend(self.prov.get_all_vals());
-			info!("All hi {:?}", all_gate_vals);
+			trace!("All hi {:?}", all_gate_vals);
 			let rand_next = Zp::new_rand();
 			self.curr_gate = math::interpolate_next_gates(&self.rand_lbls, rand_next, self.num_bits);
 			self.curr_result = math::interpolate(&all_gate_vals, rand_next);
@@ -54,10 +54,11 @@ impl<'a> Verifier<'a> {
 				self.prov.next_layer(rand_next);
 			}
 			self.rand_lbls.clear();
-			info!("Update on rand {:?}, gate {:?}, value {}", rand_next, self.curr_gate, self.curr_result);
+			trace!("Update on rand {:?}, gate {:?}, value {}", rand_next, self.curr_gate, self.curr_result);
 		}
 		println!("Prover Sumcheck Time: {}ns", self.prov.sumcheck_time.as_nanos());
-		println!("Verifier Sumcheck Time: {}ns", self.sumcheck_runtime.as_nanos());
+		println!("Verifier Sumcheck Time: {}ns", self.sumcheck_runtime.as_nanos() - 
+			self.prov.sumcheck_time.as_nanos());
 		self.curr_result == self.circuit.mle_gate_val(&self.curr_gate)
 	}
 	fn sum_check(&mut self) -> bool {
@@ -70,16 +71,16 @@ impl<'a> Verifier<'a> {
 				info!("Reject on poly {:?}, expecting {}", poly, result);
 				return false;
 			}
-			info!("Got poly {:?}, interpolate on {}", poly, r);
+			trace!("Got poly {:?}, interpolate on {}", poly, r);
 			result = math::interpolate(
 				&[(Zp::new(0), poly[0]),
 				  (Zp::new(1), poly[1]),
 				  (Zp::new(2), poly[2])], r);
 			self.rand_lbls.push(r);
-			info!("Round {} pass, result {}", i, result);
+			trace!("Round {} pass, result {}", i, result);
 		}
 		let a: Zp = self.sum_calc_next_result();
-		info!("Matching rand gate {:?} = {}", self.rand_lbls, a);
+		trace!("Matching rand gate {:?} = {}", self.rand_lbls, a);
 		self.sumcheck_runtime += now.elapsed();
 		a == result
 	}

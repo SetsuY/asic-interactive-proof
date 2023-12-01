@@ -1,5 +1,5 @@
 use std::time::{Duration, Instant};
-use log::info;
+use log::trace;
 use super::arith_circuit::{ArithCircuit};
 use super::math_helper as math;
 use super::math_helper::Zp;
@@ -73,7 +73,7 @@ impl<'a> Prover<'a> {
 				} else {
 					poly[k as usize] += term_p * term_l * term_r;
 				}
-				info!("Gate {}, p{} l{} r{}", i, term_p, term_l, term_r);
+				trace!("Gate {}, p{} l{} r{}", i, term_p, term_l, term_r);
 			}
 		}
 		self.rand_lbls.push(r);
