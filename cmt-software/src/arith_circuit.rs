@@ -1,4 +1,5 @@
 use std::{fs, io::{stdout, Write}};
+use std::time::Instant;
 pub use std::cell::RefCell;
 use super::math_helper as math;
 use super::math_helper::Zp;
@@ -78,7 +79,9 @@ impl ArithCircuit {
 			circ.circuit.push(curr_layer);
 			*layer_count += 1;
 		}
+		let now = Instant::now();
 		circ.evaluate_circuit();
+		println!("Circuit Evaluation took {}ns", now.elapsed().as_nanos());
 		circ.num_bits = circ.circuit.len() - 1;
 		*circ.curr_layer.borrow_mut() = 0;
 		return circ;
