@@ -52,6 +52,7 @@ impl ArithCircuit {
 		};
 		let file: String = fs::read_to_string(fname).unwrap();
 		// Parse file
+		let mut max_num_gates = 0;
 		for l in file.lines() {
 			let mut curr_layer: Vec<Gate> = Vec::new();
 			let mut layer_count = circ.curr_layer.borrow_mut();
@@ -73,8 +74,9 @@ impl ArithCircuit {
 				for input in l.split_whitespace() {
 					curr_layer.push(Gate::new(0, 0, false, input.parse().unwrap()));
 				}
-				circ.circuit.push(curr_layer);
-				break;
+			}
+			if max_num_gates < curr_layer.len() {
+				max_num_gates = curr_layer.len();
 			}
 			circ.circuit.push(curr_layer);
 			*layer_count += 1;
@@ -82,7 +84,7 @@ impl ArithCircuit {
 		let now = Instant::now();
 		circ.evaluate_circuit();
 		println!("Circuit Evaluation took {}ns", now.elapsed().as_nanos());
-		circ.num_bits = circ.circuit.len() - 1;
+		circ.num_bits = (max_num_gates as f64).log2().ceil() as usize;
 		*circ.curr_layer.borrow_mut() = 0;
 		return circ;
 	}
