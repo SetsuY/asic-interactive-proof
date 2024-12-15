@@ -2,8 +2,10 @@ use std::{fmt, ops, cmp};
 use rand;
 
 // PRIME = M31
-pub const PRIME: u32 = 2147483647; 
-pub const LOW_BIT_MASK: usize = !0 - 1;
+const PRIME: u32 = 2147483647; 
+const PRIME_EXP: u32 = 3;
+const MOD_BASE: u64 = 2; //change these arguments later
+const LOW_BIT_MASK: usize = !0 - 1;
 
 pub fn interpolate(sample_pts: &[(Zp, Zp)], tgt_pt: Zp) -> Zp {
 	let mut sum = Zp::new(0);
@@ -173,5 +175,62 @@ fn ext_eucidean(a: u32) -> u32 {
 		r_this = r_next;
 		s_last = s_this;
 		s_this = s_next;
+	}
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Zpe(u64);
+impl Zpe {
+	pub fn new(n: u64) -> Zpe {
+		Zpe(n % MOD_BASE)
+	}
+	pub fn new_rand() -> Zpe {
+		Zpe::new(rand::random::<u64>() % PRIME as u64)
+	}
+}
+impl fmt::Display for Zpe {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.0)
+	}
+}
+impl ops::Add for Zpe {
+	type Output = Self;
+	fn add(self, other: Self) -> Self {
+		Self::new(self.0 + other.0)
+	}
+}
+impl ops::AddAssign for Zpe {
+	fn add_assign(&mut self, other: Self) {
+		*self = *self + other;
+	}
+}
+impl ops::Sub for Zpe {
+	type Output = Self;
+	fn sub(self, other: Self) -> Self {
+		let lval = self.0 as i128;
+		let rval = other.0 as i128;
+		if lval - rval < 0 {
+			Self::new((lval - rval + MOD_BASE as i128) as u64)
+		} else {
+			Self::new((lval - rval) as u64)
+		}
+	}
+}
+impl ops::Mul for Zpe {
+	type Output = Self;
+	fn mul(self, other: Self) -> Self {
+		let result = (self.0 as u128 * other.0 as u128) % MOD_BASE as u128;
+		Zpe(result as u64)
+	}
+}
+impl ops::MulAssign for Zpe {
+	fn mul_assign(&mut self, other: Self) {
+		*self = *self * other;
+	}
+}
+impl ops::Neg for Zpe {
+	type Output = Self;
+	fn neg(self) -> Self {
+		Zpe(MOD_BASE - self.0)
 	}
 }
